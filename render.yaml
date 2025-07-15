@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: smart-diaper-ml-backend
+    env: python
+    buildCommand: ""
+    startCommand: gunicorn app:app
+    envVars:
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: serviceAccountKey.json
