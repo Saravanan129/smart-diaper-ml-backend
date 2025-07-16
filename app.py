@@ -16,7 +16,7 @@ if not firebase_admin._apps:
 model = joblib.load("uti_risk_model.pkl")
 
 # ✅ Flask App
-app = Flask(_name_)
+app = Flask(__name__)
 CORS(app)  # ✅ This line enables CORS for all incoming requests (important for Flutter Web)
 
 @app.route("/")
