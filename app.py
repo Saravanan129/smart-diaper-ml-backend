@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # ✅ Import CORS here
 import firebase_admin
 from firebase_admin import credentials, db
 import joblib
@@ -15,7 +16,8 @@ if not firebase_admin._apps:
 model = joblib.load("uti_risk_model.pkl")
 
 # ✅ Flask App
-app = Flask(__name__)
+app = Flask(_name_)
+CORS(app)  # ✅ This line enables CORS for all incoming requests (important for Flutter Web)
 
 @app.route("/")
 def home():
@@ -25,6 +27,7 @@ def home():
 def predict_uti_risk():
     try:
         data = request.json
+        print("Flask received this:", data)
 
         features = [
             float(data["moisture"]),
