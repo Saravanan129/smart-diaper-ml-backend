@@ -29,20 +29,24 @@ def predict_uti_risk():
         data = request.json
         print("Flask received this:", data)
 
-        features = [
-            float(data["moisture"]),
-            float(data["gasLevel"]),
-            float(data["tempC"]),
-            int(data["crying"]),
-            int(data["handNearAbdomen"]),
-            int(data["urinationFrequency"]),
-            float(data["hydrationPercent"]),
-        ]
+        # Create features with proper naming for the model
+        import pandas as pd
+        
+        # Create a DataFrame with the expected feature names
+        features_df = pd.DataFrame({
+            'moisture': [float(data["moisture"])],
+            'gasLevel': [float(data["gasLevel"])],
+            'tempC': [float(data["tempC"])],
+            'crying': [int(data["crying"])],
+            'handNearAbdomen': [int(data["handNearAbdomen"])],
+            'urinationFrequency': [int(data["urinationFrequency"])],
+            'hydrationPercent': [float(data["hydrationPercent"])]
+        })
 
-        prediction = int(model.predict([features])[0])
+        prediction = int(model.predict(features_df)[0])
         result = "High" if prediction == 1 else "Low"
 
-        # ✅ Store in Firebase under dailyReports
+        # Store in Firebase under dailyReports
         date_key = data["date"]
         db.reference(f"/Sensor/dailyReports/{date_key}").update({
             "utiRisk": result
