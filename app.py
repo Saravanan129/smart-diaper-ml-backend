@@ -4,12 +4,25 @@ import firebase_admin
 from firebase_admin import credentials, db
 import joblib
 import os
+import json
+import base64
 
 # ✅ Initialize Firebase if not already initialized
 if not firebase_admin._apps:
-    cred = credentials.Certificate("serviceAccountKey.json")
+    if os.getenv('FIREBASE_SERVICE_ACCOUNT_B64'):
+        # Production: Use base64 encoded environment variable
+        service_account_json = base64.b64decode(
+            os.getenv('FIREBASE_SERVICE_ACCOUNT_B64')
+        ).decode('utf-8')
+        service_account = json.loads(service_account_json)
+        cred = credentials.Certificate(service_account)
+    else:
+        # Fallback: Use local file (for development only)
+        print("⚠️ Using local service account file - not recommended for production")
+        cred = credentials.Certificate("serviceAccountKey.json")
+    
     firebase_admin.initialize_app(cred, {
-        "databaseURL": "https://smartdiaper2-97108-default-rtdb.firebaseio.com"
+        'databaseURL': 'https://smartdiaper2-97108-default-rtdb.firebaseio.com'
     })
 
 # ✅ Load ML model
@@ -22,6 +35,7 @@ CORS(app)  # ✅ This line enables CORS for all incoming requests (important for
 @app.route("/")
 def home():
     return "✅ Smart Diaper ML Backend is Running on Render!"
+
 @app.route("/predict", methods=["POST"])
 def predict_uti_risk():
     try:
@@ -54,4 +68,3 @@ def predict_uti_risk():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
