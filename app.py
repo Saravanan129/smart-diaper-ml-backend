@@ -1,36 +1,28 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # ✅ Import CORS here
+from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, db
 import joblib
-import os
-import json
-import base64
 
-# ✅ Initialize Firebase if not already initialized
+# ---------------------------
+# Initialize Firebase
+# ---------------------------
 if not firebase_admin._apps:
-    if os.getenv('FIREBASE_SERVICE_ACCOUNT_B64'):
-        # Production: Use base64 encoded environment variable
-        service_account_json = base64.b64decode(
-            os.getenv('FIREBASE_SERVICE_ACCOUNT_B64')
-        ).decode('utf-8')
-        service_account = json.loads(service_account_json)
-        cred = credentials.Certificate(service_account)
-    else:
-        # Fallback: Use local file (for development only)
-        print("⚠️ Using local service account file - not recommended for production")
-        cred = credentials.Certificate("serviceAccountKey.json")
-    
+    cred = credentials.Certificate("serviceAccountKey.json")
     firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://smartdiaper2-97108-default-rtdb.firebaseio.com'
+        "databaseURL": "https://smartdiaper2-97108-default-rtdb.firebaseio.com"
     })
 
-# ✅ Load ML model
+# ---------------------------
+# Load ML model
+# ---------------------------
 model = joblib.load("uti_risk_model.pkl")
 
-# ✅ Flask App
+# ---------------------------
+# Flask App
+# ---------------------------
 app = Flask(__name__)
-CORS(app)  # ✅ This line enables CORS for all incoming requests (important for Flutter Web)
+CORS(app)
 
 @app.route("/")
 def home():
@@ -40,22 +32,23 @@ def home():
 def predict_uti_risk():
     try:
         data = request.json
-        print("Flask received this:", data)
+        print("Flask received:", data)
 
-        # Create features as numpy array (no pandas needed)
-        import numpy as np
-        
-        features = np.array([[
+        # Convert pH to numeric for the model
+        ph_numeric = 1 if str(data.get("ph", "basic")).lower() == "acidic" else 0
+
+        features = [
             float(data["moisture"]),
             float(data["gasLevel"]),
             float(data["tempC"]),
-            int(data["crying"]),
-            int(data["handNearAbdomen"]),
-            int(data["urinationFrequency"]),
-            float(data["hydrationPercent"])
-        ]])
+            int(data.get("crying", 0)),
+            int(data.get("handNearAbdomen", 0)),
+            int(data.get("urinationFrequency", 0)),
+            float(data.get("hydrationPercent", 0)),
+            ph_numeric
+        ]
 
-        prediction = int(model.predict(features)[0])
+        prediction = int(model.predict([features])[0])
         result = "High" if prediction == 1 else "Low"
 
         # Store in Firebase under dailyReports
@@ -68,3 +61,6 @@ def predict_uti_risk():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
