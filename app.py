@@ -1,23 +1,39 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # ✅ Import CORS here
+from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, db
 import joblib
 import os
+import json
 
 # ✅ Initialize Firebase if not already initialized
 if not firebase_admin._apps:
-    cred = credentials.Certificate("serviceAccountKey.json")
-    firebase_admin.initialize_app(cred, {
-        "databaseURL": "https://smartdiaper2-97108-default-rtdb.firebaseio.com"
-    })
+    try:
+        # Get the Firebase config from environment variable
+        firebase_config_json = os.environ.get("firebase-config")
+        
+        if firebase_config_json:
+            # Parse the JSON string into a dictionary
+            firebase_config = json.loads(firebase_config_json)
+            
+            # Initialize Firebase with the config
+            cred = credentials.Certificate(firebase_config)
+            firebase_admin.initialize_app(cred, {
+                "databaseURL": "https://smartdiaper2-97108-default-rtdb.firebaseio.com"
+            })
+            print("✅ Firebase initialized from firebase-config environment variable")
+        else:
+            print("❌ firebase-config environment variable not found")
+            
+    except Exception as e:
+        print(f"❌ Firebase initialization error: {e}")
 
 # ✅ Load ML model
 model = joblib.load("uti_risk_model.pkl")
 
 # ✅ Flask App
 app = Flask(__name__)
-CORS(app)  # ✅ This line enables CORS for all incoming requests (important for Flutter Web)
+CORS(app)
 
 @app.route("/")
 def home():
